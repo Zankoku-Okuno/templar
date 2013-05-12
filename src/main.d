@@ -1,5 +1,4 @@
-import std.uni : lineSep, paraSep;
-
+import dx.string : chomp;
 
 
 final class SyntaxError : Exception {
@@ -20,14 +19,14 @@ class Environment {
     private:
     enum State { START, SCALAR, ARRAY, END }
     enum Sigil { DATA, SCALAR, ARRAY, NEXT }
-    
+
     //SPIFFY and this why I like D
     string[string] scalars;
     string[][string] vectors;
 
     class Parser {
         State state = State.START;
-        string current_key = null; //TODO restrict key to be length >=1, not contain newlines
+        string current_key = null; //TODO strip and restrict key to be length >=1, not contain newlines
         string scalar_data = "";
         string[] array_data = [];
 
@@ -129,7 +128,7 @@ class Environment {
         string data;
         this(in string raw) {
             this.sigil = sigil_detect(raw);
-            this.data = line_chomp(raw);
+            this.data = chomp(raw[1..$]);
         }
         //TESTME
 
@@ -144,24 +143,6 @@ class Environment {
                 case ',': return Sigil.NEXT;
                 default: throw new SyntaxError("Each line must begin with a sigil.");
             }
-        }
-        //TESTME
-        static
-        string line_chomp(in string raw) {
-            //FIXME why can't I compile it using just a straight raw.chomp()?
-            size_t i = raw.length;
-            switch (raw[$-1]) {
-                    case '\n':
-                        if (raw.length >= 2 && raw[$-2] == '\r') {
-                                i -= 2;
-                                break;
-                            }
-                    case '\r': case lineSep: case paraSep:
-                        i -= 1;
-                        break;
-                    default: break;
-                }
-            return raw[1..i];
         }
         //TESTME
     }//Line
