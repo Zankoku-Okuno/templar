@@ -12,6 +12,8 @@ final class SyntaxError : Exception {
 }
 
 class Environment {
+public:
+    this() {}
     this(in string[] lines) {
         Parser p = new Parser(this);
         foreach(string line; lines)
@@ -36,7 +38,7 @@ private:
 
 private final
 class Parser {
-    this(Environment env=null) { this.outer = env; }
+    this(Environment env) { this.outer = env; }
 private:
     enum State { START, SCALAR, ARRAY, END }
     enum Sigil { DATA, SCALAR, ARRAY, NEXT }
@@ -62,7 +64,7 @@ public:
         return this._current_key = value;
     }
     unittest { 
-        auto p = new Parser();
+        auto p = new Parser(new Environment());
         run_test({ p.current_key = "okay"; });
         run_test({ assert(does_throw!Exception(p.current_key = "")); });
     }
@@ -128,7 +130,7 @@ public:
     }//Parser.parse
     unittest {
         Parser p;
-        void reset() { p = new Parser(); };
+        void reset() { p = new Parser(new Environment()); };
         run_test({//Scalar state accumulates data
             reset();
             p.parse("$scalar\n");
