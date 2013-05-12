@@ -14,5 +14,5 @@ clean:
 bin/templatizer: src/main.d
 	$(DC) $(DFLAGS) $^ -o $@
 
-test/main: src/main.d
+test/main: src/main.d dlangutil/testing.d
 	$(DC) $(DFLAGS) $(TEST_FLAGS) $^ -o $@
