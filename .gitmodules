@@ -1,3 +1,3 @@
-[submodule "dlangutil"]
-	path = dlangutil
-	url = git@github.com:Zankoku-Okuno/dlangutil.git
+[submodule "dx"]
+	path = dx
+	url = git@github.com:Zankoku-Okuno/dx.git
