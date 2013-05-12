@@ -21,6 +21,8 @@ class Environment {
         p.flush();
     }
     //TESTME
+    //smoke test
+    //empty input
 
     private:
 
@@ -40,6 +42,7 @@ class Parser {
 private:
     Environment outer;
     State state = State.START;
+    bool got_first_line = false;
     private string _current_key = null;
     string scalar_data = "";
     string[] array_data = [];
@@ -198,20 +201,20 @@ public:
             assert(p.scalar_data == "");
         });
     }
-    //TESTME
 
     void flush(State new_state=State.END)
     in {
-        assert(this.state != State.START);
-        assert(this.current_key !is null);
+        assert(this.state == State.START || this.current_key !is null);
     }
     out {
         assert(this.scalar_data == "");
         assert(this.array_data == []);
         assert(this.current_key is null);
+        assert(!this.got_first_line);
     }
     body {
-        if (this.state == State.SCALAR) {
+        if (this.state == State.START) return;
+        else if (this.state == State.SCALAR) {
             if (this.outer !is null)
                 this.outer.scalars[current_key] = this.scalar_data;
             this.scalar_data = "";
@@ -225,18 +228,21 @@ public:
         }
         this._current_key = null;
         this.state = new_state;
+        this.got_first_line = false;
     }
     //no unittests, contracts are sufficient until integration tests
 
 private:
     void buffer_data(string data) {
-        if (this.scalar_data != "") this.scalar_data ~= '\n';
+        if (this.got_first_line) this.scalar_data ~= '\n';
         this.scalar_data ~= data;
+        this.got_first_line = true;
     }
     //TESTME
     void buffer_elem() {
         this.array_data ~= this.scalar_data;
         this.scalar_data = "";
+        this.got_first_line = false;
     }
     //TESTME
 
