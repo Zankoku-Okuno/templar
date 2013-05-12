@@ -4,7 +4,6 @@ import std.string : strip;
 
 import dx.testing;
 
-
 final class SyntaxError : Exception {
     this(string msg, string file = __FILE__, ulong line = __LINE__, Throwable next = null) {
         super(msg, file, line, next);
@@ -19,12 +18,52 @@ public:
         foreach(string line; lines)
             p.parse(line);
         p.flush();
+        this.scalars.rehash;
+        this.vectors.rehash;
     }
     //TESTME
     //smoke test
     //empty input
 
+    void put_scalar(in string key, string value)
+    in { assert(key !is null); }
+    body {
+        this.scalars[this.enforce_key(key)] = value;
+    }
+    //TESTME
+    void put_vector(in string key, string[] value)
+    in { assert(key !is null); }
+    body {
+        this.vectors[this.enforce_key(key)] = value;
+    }
+    //TESTME
+
+    string get_scalar(in string key)
+    in { assert(key !is null); }
+    body {
+        return scalars.get(key, "");
+    }
+    //TESTME
+    string[] get_vector(in string key)
+    in { assert(key !is null); }
+    body {
+        return vectors.get(key, []);
+    }
+    //TESTME
+
 private:
+
+    string enforce_key(in string key) {
+        if (key.contains_any(".\n\r"))
+            //TODO netter exception
+            throw new Exception("Identifier cannot contain dot '.' or newline '\\n'/'\\r'");
+        foreach(string k; this.scalars.byKey)
+            if (k == key) throw new Exception("Duplicate identifier."); //TODO better exception
+        foreach(string k; this.vectors.byKey)
+            if (k == key) throw new Exception("Duplicate identifier."); //TODO better exception
+        return key;
+    }
+    //TESTME
 
     //SPIFFY and this why I like D
     string[string] scalars;
@@ -61,6 +100,9 @@ public:
         value = value.strip();
         if (value.length == 0) throw new Exception("Zero-length identifiers not allowed.");
         //TODO disallow period in the value, dot syntax is used for recursive access
+        //TODO diallow brackets in the value, close bracket is part of the template syntax
+        //TODO disallow things that can be parsed as positive ints
+        //TODO disallow '='? and the element of pperator?
         return this._current_key = value;
     }
     unittest { 
@@ -219,15 +261,13 @@ public:
     body {
         if (this.state == State.START) return;
         else if (this.state == State.SCALAR) {
-            if (this.outer !is null)
-                this.outer.scalars[current_key] = this.scalar_data;
+            this.outer.put_scalar(current_key, this.scalar_data);
             this.scalar_data = "";
         }
         else {
             assert(this.state == State.ARRAY);
             this.buffer_elem();
-            if (this.outer !is null)
-                this.outer.vectors[current_key] = this.array_data;
+            this.outer.put_vector(current_key, this.array_data);
             this.array_data = [];
         }
         this._current_key = null;
