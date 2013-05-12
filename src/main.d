@@ -10,8 +10,6 @@ final class SyntaxError : Exception {
         super(msg, file, line, next);
     }
 }
-    enum State { START, SCALAR, ARRAY, END }
-    enum Sigil { DATA, SCALAR, ARRAY, NEXT }
 
 class Environment {
     this(in string[] lines) {
@@ -24,7 +22,7 @@ class Environment {
     //smoke test
     //empty input
 
-    private:
+private:
 
     //SPIFFY and this why I like D
     string[string] scalars;
@@ -40,13 +38,16 @@ private final
 class Parser {
     this(Environment env=null) { this.outer = env; }
 private:
+    enum State { START, SCALAR, ARRAY, END }
+    enum Sigil { DATA, SCALAR, ARRAY, NEXT }
+
     Environment outer;
     State state = State.START;
     bool got_first_line = false;
     private string _current_key = null;
     string scalar_data = "";
     string[] array_data = [];
-    
+
 public:
     @property string current_key() { return this._current_key; }
     @property string current_key(string value)
@@ -57,6 +58,7 @@ public:
     body {
         value = value.strip();
         if (value.length == 0) throw new Exception("Zero-length identifiers not allowed.");
+        //TODO disallow period in the value, dot syntax is used for recursive access
         return this._current_key = value;
     }
     unittest { 
@@ -65,7 +67,9 @@ public:
         run_test({ assert(does_throw!Exception(p.current_key = "")); });
     }
 
-    void parse(in string raw) {
+    void parse(in string raw)
+    in { assert(raw !is null); }
+    body {
         auto line = Line(raw);
         switch (this.state) {
             case State.START: {
@@ -203,9 +207,7 @@ public:
     }
 
     void flush(State new_state=State.END)
-    in {
-        assert(this.state == State.START || this.current_key !is null);
-    }
+    in { assert(this.state == State.START || this.current_key !is null); }
     out {
         assert(this.scalar_data == "");
         assert(this.array_data == []);
@@ -233,33 +235,48 @@ public:
     //no unittests, contracts are sufficient until integration tests
 
 private:
-    void buffer_data(string data) {
+    void buffer_data(in string data)
+    in { assert(data !is null); }
+    body {
         if (this.got_first_line) this.scalar_data ~= '\n';
         this.scalar_data ~= data;
         this.got_first_line = true;
     }
-    //TESTME
+    //tested by parse function
     void buffer_elem() {
         this.array_data ~= this.scalar_data;
         this.scalar_data = "";
         this.got_first_line = false;
     }
-    //TESTME
+    //tested by parse function
 
     static final
     struct Line {
     public:
         Sigil sigil;
         string data;
-        this(in string raw) {
+        this(in string raw)
+        in { assert(raw !is null); }
+        body {
             this.sigil = sigil_detect(raw);
             this.data = chomp(raw[1..$]);
         }
-        //TESTME
+        unittest {
+            run_test({
+                auto l = Line(":$stuff");
+                assert(l.sigil == Sigil.DATA);
+                assert(l.data == "$stuff");
+                l = Line(",:more stuff\r\n");
+                assert(l.sigil == Sigil.NEXT);
+                assert(l.data == ":more stuff");
+            });
+        }
 
     private:
         static
-        Sigil sigil_detect(in string raw) {
+        Sigil sigil_detect(in string raw)
+        in { assert(raw !is null); }
+        body {
             if (raw.length < 1) throw new SyntaxError("Each line must begin with a sigil.");
             switch (raw[0]) {
                 case ':': return Sigil.DATA;
@@ -269,7 +286,18 @@ private:
                 default: throw new SyntaxError("Each line must begin with a sigil.");
             }
         }
-        //TESTME
+        unittest {
+            run_test({//Sigils detected correctly
+                assert(sigil_detect(":a") == Sigil.DATA);
+                assert(sigil_detect("$") == Sigil.SCALAR);
+                assert(sigil_detect("@") == Sigil.ARRAY);
+                assert(sigil_detect(",") == Sigil.NEXT);
+            });
+            run_test({//Non-sigils are syntax errors
+                assert(does_throw!SyntaxError(sigil_detect("nope")));
+                assert(does_throw!SyntaxError(sigil_detect("")));
+            });
+        }
     }//Line
 
-    }//Parser
+}//Parser

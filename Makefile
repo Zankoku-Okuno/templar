@@ -5,7 +5,7 @@ TEST_FLAGS = -funittest -O0
 all: bin/templatizer
 
 check: test/main
-	test/main
+	time test/main
 
 clean:
 	rm -f bin/templatizer bin/*.o
@@ -15,4 +15,4 @@ bin/templatizer: src/main.d
 	$(DC) $(DFLAGS) $^ -o $@
 
 test/main: src/main.d dx/*.d
-	$(DC) $(DFLAGS) $(TEST_FLAGS) $^ -o $@
+	time $(DC) $(DFLAGS) $(TEST_FLAGS) $^ -o $@
