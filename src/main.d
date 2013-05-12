@@ -1,4 +1,5 @@
-import dx.string : chomp;
+import dx.string : chomp, contains_any;
+import std.string : strip;
 
 
 final class SyntaxError : Exception {
@@ -26,7 +27,18 @@ class Environment {
 
     class Parser {
         State state = State.START;
-        string current_key = null; //TODO strip and restrict key to be length >=1, not contain newlines
+        private string _current_key = null;
+        @property string current_key() { return this._current_key; }
+        @property string current_key(string value)
+        in {
+            assert(value !is null);
+            assert(!value.contains_any("\n\r"));
+        }
+        body {
+            value = value.strip();
+            if (value.length == 0) throw new Exception("Zero-length identifiers not allowed.");
+            return this._current_key = value;
+        }//TESTME
         string scalar_data = "";
         string[] array_data = [];
 
@@ -100,11 +112,12 @@ class Environment {
         void flush(State new_state=State.END)
         in {
             assert(this.state != State.START);
-            assert(current_key !is null);
+            assert(this.current_key !is null);
         }
         out {
             assert(this.scalar_data == "");
             assert(this.array_data == []);
+            assert(this.current_key is null);
         }
         body {
             if (this.state == State.SCALAR) {
@@ -117,6 +130,7 @@ class Environment {
                 this.outer.vectors[current_key] = this.array_data;
                 this.array_data = [];
             }
+            this._current_key = null;
             this.state = new_state;
         }
         //TESTME
