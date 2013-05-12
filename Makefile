@@ -1,4 +1,4 @@
-DC = gdc -Wall
+DC = gdc
 DFLAGS = -Isrc -O2
 TEST_FLAGS = -funittest -O0
 
