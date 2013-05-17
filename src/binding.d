@@ -17,13 +17,16 @@ public:
     //TESTME
     //smoke test
     //empty input
-    this(File file) {
+    this(string[] filenames) {
         Parser p = new Parser(this);
-        do {
-            string line = file.readln();
-            if (line.length == 0) break;
-            p.parse(line);
-        } while(true);
+        foreach(string filename; filenames) {
+            auto file = File(filename);
+            do {
+                string line = file.readln();
+                if (line.length == 0) break;
+                p.parse(line);
+            } while(true);
+        }
         p.flush();
         this.scalars.rehash;
         this.vectors.rehash;
@@ -79,6 +82,7 @@ public:
         return acc;
     }
     //TESTME
+    //TODO toFile, for more direct i/o
 
 private:
     //SPIFFY and this why I like D
