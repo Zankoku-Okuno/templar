@@ -11,8 +11,8 @@ clean:
 	rm -f bin/templatizer bin/*.o
 	rm -f test/main
 
-bin/templatizer: src/main.d
-	$(DC) $(DFLAGS) $^ -o $@
+bin/templatizer: src/main.d src/binding.d src/persistance.d dx/string.d
+	$(DC) -frelease $(DFLAGS) $^ -o $@
 
-test/main: src/main.d dx/*.d
+test/main: src/binding.d src/persistance.d dx/*.d
 	time $(DC) $(DFLAGS) $(TEST_FLAGS) $^ -o $@
