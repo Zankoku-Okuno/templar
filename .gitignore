@@ -1,2 +1,4 @@
 bin/templatizer
 test/main
+*.o
+lib*.a
