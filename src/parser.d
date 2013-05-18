@@ -1,6 +1,8 @@
 import std.stdio;
 
 import binding;
+import token;
+import render;
 
 
 /*
@@ -49,6 +51,12 @@ private:
     string buffer = "";
     //TODO traceback for diagnostics
 public:
+    TemplateParser parse(File file) {
+        string line;
+        while((line = file.readln()) !is null)
+            this.parse(line);
+        return this;
+    }
     void parse(string chunk) {
         chunk = this.buffer ~ chunk; this.buffer = "";
         while(chunk.length > 0) {
@@ -82,9 +90,6 @@ private:
 }
 
 private:
-class EnvInterface {
-
-}
 
 abstract class Renderable {
 public:
@@ -106,32 +111,3 @@ class LoopController : TokenStreamController {
 }
 
 
-
-//REFAC token & subclasses into their own file
-abstract class Token : Renderable {
-public:
-}
-
-class StrToken : Token {
-private:
-    string data;
-public:
-    this(string data) { this.data = data; }
-    string render() { return this.data; }
-}
-
-class TemplateRenderer {
-private:
-    Environment env;
-    Token[] stream;
-public:
-    this(Environment env, Token[] stream) {
-        this.env = env;
-        this.stream = stream;
-    }
-
-    void render(File file) {
-        foreach(Token token; this.stream)
-            token.render(file);
-    }
-}

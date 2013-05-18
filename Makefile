@@ -13,7 +13,7 @@ clean:
 	rm -f test/main test/*.o
 	rm -f lib/libdx.a lib/*.o
 
-FINAL_OBJS = bin/main.o bin/binding.o bin/parser.o
+FINAL_OBJS = bin/main.o bin/binding.o bin/token.o bin/parser.o bin/render.o
 bin/templatizer: $(FINAL_OBJS) lib/libdx.a
 	$(DC) $(DFLAGS) $(FINAL_FLAGS) $(FINAL_OBJS) -ldx -o $@
 
@@ -45,3 +45,11 @@ test/%.o: src/%.d lib/libdx.a
 
 test/binding.o: $(BINDING_SOURCES) lib/libdx.a
 	$(DC) -c $(DFLAGS) $(TEST_FLAGS) $(BINDING_SOURCES) -o $@
+
+# Dependencies #
+src/main.d: src/binding.d src/persistance.d src/parser.d
+	@touch $@
+src/parser.d: src/binding.d src/token.d src/render.d
+	@touch $@
+src/render.d: src/binding.d src/token.d
+	@touch $@

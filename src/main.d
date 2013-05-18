@@ -16,11 +16,7 @@ void main(string[] args) {
          out_file = out_filename !is null ? File(out_filename, "wb") : stdout;
     auto data = new Environment(args);
     
-    TemplateParser parser = new TemplateParser();
-    string line;
-    while((line = in_file.readln()) !is null)
-        parser.parse(line);
-    parser.renderer(data).render(out_file);
+    (new TemplateParser()).parse(in_file).renderer(data).render(out_file);
 }
 
 //void open
