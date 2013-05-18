@@ -13,11 +13,11 @@ clean:
 	rm -f test/main test/*.o
 	rm -f lib/libdx.a lib/*.o
 
-FINAL_OBJS = bin/main.o bin/binding.o
+FINAL_OBJS = bin/main.o bin/binding.o bin/parser.o
 bin/templatizer: $(FINAL_OBJS) lib/libdx.a
 	$(DC) $(DFLAGS) $(FINAL_FLAGS) $(FINAL_OBJS) -ldx -o $@
 
-TEST_OBJS = test/main.o test/binding.o
+TEST_OBJS = test/main.o test/binding.o test/parser.o
 test/main: $(TEST_OBJS) lib/libdx.a
 	$(DC) $(DFLAGS) $(TEST_FLAGS) $(TEST_OBJS) -ldx -o $@
 

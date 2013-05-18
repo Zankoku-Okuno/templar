@@ -3,7 +3,7 @@ import std.string : strip;
 
 import binding;
 
-final class SyntaxError : Exception {
+final class DataSyntaxError : Exception {
     this(string msg, string file = __FILE__, ulong line = __LINE__, Throwable next = null) {
         super(msg, file, line, next);
     }
@@ -52,8 +52,8 @@ public:
         switch (this.state) {
             case State.START: {
                 switch (line.sigil) {
-                    case Sigil.DATA: throw new SyntaxError("Data encountered before key established.");
-                    case Sigil.NEXT: throw new SyntaxError("Array delimiter encountered before array established.");
+                    case Sigil.DATA: throw new DataSyntaxError("Data encountered before key established.");
+                    case Sigil.NEXT: throw new DataSyntaxError("Array delimiter encountered before array established.");
                     case Sigil.SCALAR:
                         this.current_key = line.data;
                         this.state = State.SCALAR;
@@ -69,7 +69,7 @@ public:
             case State.SCALAR: {
                 switch (line.sigil) {
                     case Sigil.DATA: buffer_data(line.data); break;
-                    case Sigil.NEXT: throw new SyntaxError("Array delimiter encountered in scalar.");
+                    case Sigil.NEXT: throw new DataSyntaxError("Array delimiter encountered in scalar.");
                     case Sigil.SCALAR:
                         this.flush(State.SCALAR);
                         this.current_key = line.data;
@@ -159,14 +159,14 @@ public:
         });
         run_test({//All states reject invalid input.
             reset();
-            assert(does_throw!SyntaxError(p.parse("gobbledygook")));
-            assert(does_throw!SyntaxError(p.parse(":data\n")));
-            assert(does_throw!SyntaxError(p.parse(",elem\n")));
+            assert(does_throw!DataSyntaxError(p.parse("gobbledygook")));
+            assert(does_throw!DataSyntaxError(p.parse(":data\n")));
+            assert(does_throw!DataSyntaxError(p.parse(",elem\n")));
             p.parse("$scalar\n");
-            assert(does_throw!SyntaxError(p.parse("gobbledygook")));
-            assert(does_throw!SyntaxError(p.parse(",elem")));
+            assert(does_throw!DataSyntaxError(p.parse("gobbledygook")));
+            assert(does_throw!DataSyntaxError(p.parse(",elem")));
             p.parse("@array\n");
-            assert(does_throw!SyntaxError(p.parse("gobbledygook")));
+            assert(does_throw!DataSyntaxError(p.parse("gobbledygook")));
         });
         run_test({//Blank lines are not a problem
             reset();
@@ -253,13 +253,13 @@ private:
         Sigil sigil_detect(in string raw)
         in { assert(raw !is null); }
         body {
-            if (raw.length < 1) throw new SyntaxError("Each line must begin with a sigil.");
+            if (raw.length < 1) throw new DataSyntaxError("Each line must begin with a sigil.");
             switch (raw[0]) {
                 case ':': return Sigil.DATA;
                 case '$': return Sigil.SCALAR;
                 case '@': return Sigil.ARRAY;
                 case ',': return Sigil.NEXT;
-                default: throw new SyntaxError("Each line must begin with a sigil.");
+                default: throw new DataSyntaxError("Each line must begin with a sigil.");
             }
         }
         unittest { import dx.testing;
@@ -270,8 +270,8 @@ private:
                 assert(sigil_detect(",") == Sigil.NEXT);
             });
             run_test({//Non-sigils are syntax errors
-                assert(does_throw!SyntaxError(sigil_detect("nope")));
-                assert(does_throw!SyntaxError(sigil_detect("")));
+                assert(does_throw!DataSyntaxError(sigil_detect("nope")));
+                assert(does_throw!DataSyntaxError(sigil_detect("")));
             });
         }
     }//Line
