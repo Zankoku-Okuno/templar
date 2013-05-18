@@ -1,4 +1,5 @@
 import std.stdio;
+import std.string;
 
 import binding;
 import token;
@@ -57,6 +58,7 @@ public:
             this.parse(line);
         return this;
     }
+    //WARNING this function only accounts for when chunks are line-by-line
     void parse(string chunk) {
         chunk = this.buffer ~ chunk; this.buffer = "";
         while(chunk.length > 0) {
@@ -64,20 +66,61 @@ public:
             /*if eliminate_whitespace 
                 if the whitespace mode flag is set, advance through whitespace. if there's still input, unset the flag
                 if there's whitespace at the end-1, move it to the buffer*/
-            stream ~= new StrToken(chunk);
-            chunk = "";
-            //STUB
-            /*search for first control glyph
-            if none found, consume&emit StrToken of chunk[0..$-1], buffer chunk[$-1]
-            if found, dispatch to the glyph's own parsing/action function
-                the glyph's function can return a token or null. if null, then the control needs more input to be completed*/
-                //TODO
-                /*if eliminate_whitespace 
-                    if there's whitespace now at the start, consume and set whitespace mode flag*/
+            ptrdiff_t index = 0;
+            string consume(ptrdiff_t n) {
+                string consumed = chunk[0..n];
+                chunk = chunk[n..$];
+                index = 0;
+                return consumed;
+            }
+            do { // look for the first control glyph
+                index += chunk[index..$].indexOf('{');
+                if (index < 1) { // no control found
+                    if (chunk.length > 0) { stream ~= new StrToken(chunk); chunk = ""; }
+                    break;
+                }
+                switch (chunk[index-1]) {
+                    case '\\': {
+                        stream ~= new StrToken(consume(index-1));
+                        if (chunk.length < 4) { chunk = ""; index = 0; } //undefined behavoir
+                        assert(chunk[3] == '}'); //undefined behavoir
+                        stream ~= new StrToken([chunk[2], '{']);
+                        chunk = chunk[4..$];
+                        break;
+                    }//TESTME
+                    case '#': {
+                        stream ~= new StrToken(consume(index-1));
+                        chunk = chunk[2..$];
+                        ptrdiff_t end_index;
+                        while((end_index = chunk.indexOf('}')) != -1) {
+                            if (end_index+1 < chunk.length && chunk[end_index+1] == '#') {
+                                consume(end_index+2);
+                                goto loopthen;
+                            }
+                            else
+                                chunk = chunk[end_index+1..$];
+                        } goto loopelse;
+                        loopthen:
+                            break;
+                        loopelse: {
+                            this.buffer = "#{";
+                            return;
+                        }
+                    }//TESTME
+                    case '$': assert(false); //STUB
+                    case '@': assert(false); //STUB
+                    case '%': assert(false); //STUB
+                    case '?': assert(false); //STUB
+                    case '!': assert(false); //STUB
+                    case '&': assert(false); //STUB
+                    default: ++index; break;
+                }
+            } while (true);
         }
     }
 
     TemplateRenderer renderer(Environment env) {
+        //TODO unbuffer
         return new TemplateRenderer(env, this.stream);
     }
 
