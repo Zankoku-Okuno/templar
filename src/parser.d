@@ -67,46 +67,21 @@ public:
                 if the whitespace mode flag is set, advance through whitespace. if there's still input, unset the flag
                 if there's whitespace at the end-1, move it to the buffer*/
             ptrdiff_t index = 0;
-            string consume(ptrdiff_t n) {
-                string consumed = chunk[0..n];
-                chunk = chunk[n..$];
-                index = 0;
-                return consumed;
-            }
-            do { // look for the first control glyph
-                index += chunk[index..$].indexOf('{');
-                if (index < 1) { // no control found
-                    if (chunk.length > 0) { stream ~= new StrToken(chunk); chunk = ""; }
-                    break;
+           
+            do { 
+                /* look for the first control glyph, if there */ {
+                    ptrdiff_t di = chunk[index..$].indexOf('{');
+                    if (di < 1) break; // no control found
+                    index += di;
                 }
-                switch (chunk[index-1]) {
-                    case '\\': {
-                        stream ~= new StrToken(consume(index-1));
-                        if (chunk.length < 4) { chunk = ""; index = 0; } //undefined behavoir
-                        assert(chunk[3] == '}'); //undefined behavoir
-                        stream ~= new StrToken([chunk[2], '{']);
-                        chunk = chunk[4..$];
-                        break;
-                    }//TESTME
-                    case '#': {
-                        stream ~= new StrToken(consume(index-1));
-                        chunk = chunk[2..$];
-                        ptrdiff_t end_index;
-                        while((end_index = chunk.indexOf('}')) != -1) {
-                            if (end_index+1 < chunk.length && chunk[end_index+1] == '#') {
-                                consume(end_index+2);
-                                goto loopthen;
-                            }
-                            else
-                                chunk = chunk[end_index+1..$];
-                        } goto loopelse;
-                        loopthen:
-                            break;
-                        loopelse: {
-                            this.buffer = "#{";
-                            return;
-                        }
-                    }//TESTME
+                char sigil = chunk[index-1];
+                if (sigil == '%' || sigil == '!' || sigil == '$' || sigil == '@'
+                ||  sigil == '?' || sigil == '&' || sigil == '#' || sigil == '\\')
+                    this.emit(new StrToken(this.consume(index-1, chunk, index)));
+                bool complete = true;
+                switch (sigil) {
+                    case '\\': complete = wrap_token(this.parse_escape(chunk, index)); break;
+                    case '#':                        this.parse_comment(chunk, index); break;
                     case '$': assert(false); //STUB
                     case '@': assert(false); //STUB
                     case '%': assert(false); //STUB
@@ -115,7 +90,12 @@ public:
                     case '&': assert(false); //STUB
                     default: ++index; break;
                 }
+                if (!complete) {
+                    this.buffer = chunk;
+                    chunk = ""; index = 0;
+                }
             } while (true);
+            if (chunk.length > 0) { this.emit(new StrToken(chunk)); chunk = ""; }
         }
     }
 
@@ -127,9 +107,42 @@ public:
 private:
     void emit(Token token) {
         //TODO if the token would modify control stack, then handle that here
-        if (this.control_stack.length == 0) {}//STUB
+        if (this.control_stack.length == 0) this.stream ~= token;
         else this.control_stack[$-1].emit(token);
     }
+
+    bool wrap_token(Token token) {
+        if (token !is null) this.emit(token);
+        return token !is null;
+    }
+
+    Token parse_escape(ref string chunk, ref ptrdiff_t index) {
+        ptrdiff_t end_index = -1;
+        if ((end_index = chunk.indexOf('}')) == -1) return null; // undefined behavoir
+        return new StrToken(this.consume(end_index+1, chunk, index)[2..$-1] ~ "{");
+    }//TESTME
+
+    void parse_comment(ref string chunk, ref ptrdiff_t index) {
+        chunk = chunk[2..$];
+        ptrdiff_t end_index;
+        while((end_index = chunk.indexOf('}')) != -1) {
+            if (end_index+1 < chunk.length && chunk[end_index+1] == '#') {
+                this.consume(end_index+2, chunk, index);
+                return;
+            }
+            else
+                chunk = chunk[end_index+1..$];
+        }
+        chunk = ""; index = 0;
+        this.buffer = "#{";
+    }//TESTME
+
+     string consume(ptrdiff_t n, ref string chunk, ref ptrdiff_t index) {
+        string consumed = chunk[0..n];
+        chunk = chunk[n..$];
+        index = 0;
+        return consumed;
+    }//TESTME
 }
 
 private:
