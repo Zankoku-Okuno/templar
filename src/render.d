@@ -5,21 +5,17 @@ import token;
 
 class TemplateRenderer {
 private:
-    Environment env;
+    SemanticEnvironment env;
     Token[] stream;
 public:
     this(Environment env, Token[] stream) {
-        this.env = env;
+        this.env = new SemanticEnvironment(env);
         this.stream = stream;
     }
 
     void render(File file) {
         foreach(Token token; this.stream)
-            token.render(file);
+            token.render(this.env, file);
     }
 }
 
-//TODO
-class EnvInterface {
-
-}

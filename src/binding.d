@@ -102,3 +102,13 @@ private:
     //TESTME
 
 }
+
+
+class SemanticEnvironment {
+private:
+    Environment outer;
+public:
+    this(Environment env) { this.outer = env; }
+
+    //STUB
+}

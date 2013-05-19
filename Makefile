@@ -17,7 +17,7 @@ FINAL_OBJS = bin/main.o bin/binding.o bin/token.o bin/parser.o bin/render.o
 bin/templatizer: $(FINAL_OBJS) lib/libdx.a
 	$(DC) $(DFLAGS) $(FINAL_FLAGS) $(FINAL_OBJS) -ldx -o $@
 
-TEST_OBJS = test/main.o test/binding.o test/parser.o
+TEST_OBJS = test/main.o test/binding.o test/token.o test/parser.o test/render.o
 test/main: $(TEST_OBJS) lib/libdx.a
 	$(DC) $(DFLAGS) $(TEST_FLAGS) $(TEST_OBJS) -ldx -o $@
 
@@ -52,4 +52,6 @@ src/main.d: src/binding.d src/persistance.d src/parser.d
 src/parser.d: src/binding.d src/token.d src/render.d
 	@touch $@
 src/render.d: src/binding.d src/token.d
+	@touch $@
+src/token.d: src/binding.d
 	@touch $@
