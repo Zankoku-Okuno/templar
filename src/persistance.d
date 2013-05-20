@@ -179,9 +179,13 @@ public:
         run_test({//Empty data is not a problem
             reset();
             p.parse("$scalar\n");
-            p.parse(":");
+            p.parse(":\n");
             assert(p.scalar_data == "");
+            p.parse("$next");
+            assert(p.scalar_data == "");
+            p.parse("$final");
         });
+
     }
 
     void flush(State new_state=State.END)

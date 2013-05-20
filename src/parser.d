@@ -82,12 +82,12 @@ public:
                 switch (sigil) {
                     case '\\': complete = wrap_token(this.parse_escape(chunk, index)); break;
                     case '#':                        this.parse_comment(chunk, index); break;
-                    case '$': assert(false); //STUB
-                    case '@': assert(false); //STUB
-                    case '%': assert(false); //STUB
-                    case '?': assert(false); //STUB
-                    case '!': assert(false); //STUB
-                    case '&': assert(false); //STUB
+                    case '$':  complete = wrap_token(this.parse_scalar(chunk, index)); break;
+                    case '@':  assert(false); //STUB
+                    case '%':  assert(false); //STUB
+                    case '?':  assert(false); //STUB
+                    case '!':  assert(false); //STUB
+                    case '&':  assert(false); //STUB
                     default: ++index; break;
                 }
                 if (!complete) {
@@ -117,8 +117,8 @@ private:
     }
 
     Token parse_escape(ref string chunk, ref ptrdiff_t index) {
-        ptrdiff_t end_index = -1;
-        if ((end_index = chunk.indexOf('}')) == -1) return null; // undefined behavoir
+        ptrdiff_t end_index = chunk.indexOf('}');
+        if (end_index == -1) return null; // undefined behavoir
         return new StrToken(this.consume(end_index+1, chunk, index)[2..$-1] ~ "{");
     }//TESTME
 
@@ -136,6 +136,13 @@ private:
         chunk = ""; index = 0;
         this.buffer = "#{";
     }//TESTME
+
+    Token parse_scalar(ref string chunk, ref ptrdiff_t index) {
+        ptrdiff_t end_index = chunk.indexOf('}');
+        if (end_index == -1) return null;
+        return new ScalarToken(this.consume(end_index+1, chunk, index)[2..$-1]);
+    }//TESTME
+
 
      string consume(ptrdiff_t n, ref string chunk, ref ptrdiff_t index) {
         string consumed = chunk[0..n];

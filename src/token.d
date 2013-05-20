@@ -32,6 +32,6 @@ public:
     }//TESTME
 
     string render(SemanticEnvironment env) {
-        return "STUB";
+        return env.resolve_scalar(this.lookup);
     }
 }

@@ -1,3 +1,4 @@
+import std.conv;
 import std.stdio;
 import std.string;
 
@@ -6,9 +7,9 @@ import persistance;
 class Environment {
 public:
     this() {}
-    this(in string[] lines) {
+    this(string data) {
         Parser p = new Parser(this);
-        foreach(string line; lines)
+        foreach(string line; data.splitLines())
             p.parse(line);
         p.flush();
         this.scalars.rehash;
@@ -49,13 +50,13 @@ public:
     string get_scalar(in string key)
     in { assert(key !is null); }
     body {
-        return scalars.get(key, "");
+        return scalars.get(key, null);
     }
     //TESTME
     string[] get_vector(in string key)
     in { assert(key !is null); }
     body {
-        return vectors.get(key, []);
+        return vectors.get(key, null);
     }
     //TESTME
 
@@ -110,5 +111,37 @@ private:
 public:
     this(Environment env) { this.outer = env; }
 
-    //STUB
+    string resolve_scalar(string[] path) {
+        Environment env = this.outer;
+        string acc;
+        string sc; string[] vec;
+        while(true) {
+            if ((sc = env.get_scalar(path[0])) !is null) {
+                acc = sc;
+                path = path[1..$];
+            }
+            else if ((vec = env.get_vector(path[0])) !is null) {
+                if (path.length >= 2) {
+                    { // validity/bounds checking
+                        if (path[1].length == 0) throw new Exception("Not a whole number.");//TODO better diagnostics
+                        foreach(char c; path[1])
+                            if (!('0' <= c && c <= '9'))
+                                throw new Exception("Not a whole number.");//TODO better diagnostics
+                        if (path[1] == "0") throw new Exception("Not a whole number.");//TODO better diagnostics
+                    }
+                    size_t index = parse!size_t(path[1]);
+                    if (index > vec.length) return "";
+                    acc = vec[index - 1];
+                    path = path[2..$];
+                }
+                else return to!string(vec.length);
+            }
+            else return "";
+            if (path.length > 0)
+                env = new Environment(acc);
+            else break;
+        }
+        return acc;
+    }//TESTME
+    
 }
