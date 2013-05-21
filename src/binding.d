@@ -115,7 +115,7 @@ public:
         Environment env = this.outer;
         string acc;
         string sc; string[] vec;
-        while(true) {
+        do {
             if ((sc = env.get_scalar(path[0])) !is null) {
                 acc = sc;
                 path = path[1..$];
@@ -140,8 +140,12 @@ public:
             if (path.length > 0)
                 env = new Environment(acc);
             else break;
-        }
+        } while(true);
         return acc;
     }//TESTME
     
+    string[] resolve_vector(string[] path) {
+        return []; //STUB
+    }
+
 }

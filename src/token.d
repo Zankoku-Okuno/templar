@@ -35,3 +35,23 @@ public:
         return env.resolve_scalar(this.lookup);
     }
 }
+
+class VectorToken : Token {
+    this(Token[] body, Token[] empty) {} //STUB
+
+    string render(SemanticEnvironment env) {
+        return ""; //STUB
+    }
+}
+
+class ConditionalToken : Token {
+    this(string key, Token[] when_true, Token[] when_false) {} //STUB
+    //STUB
+    //what sort of data structure gets eval'd?
+    //the simple version just evals a single string as a key to either a 
+    //what if I wanted to add logical operations to the mix, or even functions?
+
+    string render(SemanticEnvironment env) {
+        return ""; //STUB
+    }
+}

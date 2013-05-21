@@ -28,8 +28,8 @@ import render;
     branch rendering:
         include:
             simply parse the included file as if it were the root of a tree
-            if chain: eval each condition in order until one of them is true, then render the token stream associated with that cond
-            loop:
+        if chain: eval each condition in order until one of them is true, then render the token stream associated with that cond
+        loop:
 
     block rendering:
         if there is a %{more} token, then do ahead and render around it
@@ -75,19 +75,19 @@ public:
                     index += di;
                 }
                 char sigil = chunk[index-1];
-                if (sigil == '%' || sigil == '!' || sigil == '$' || sigil == '@'
+                if (sigil == '%' || sigil == '~' || sigil == '$' || sigil == '@'
                 ||  sigil == '?' || sigil == '&' || sigil == '#' || sigil == '\\')
                     this.emit(new StrToken(this.consume(index-1, chunk, index)));
                 bool complete = true;
                 switch (sigil) {
-                    case '\\': complete = wrap_token(this.parse_escape(chunk, index)); break;
-                    case '#':                        this.parse_comment(chunk, index); break;
-                    case '$':  complete = wrap_token(this.parse_scalar(chunk, index)); break;
-                    case '@':  assert(false); //STUB
-                    case '%':  assert(false); //STUB
-                    case '?':  assert(false); //STUB
-                    case '!':  assert(false); //STUB
-                    case '&':  assert(false); //STUB
+                    case '\\': complete = wrap_token(this.parse_escape(chunk, index));      break;
+                    case '#':                        this.parse_comment(chunk, index);      break;
+                    case '$':  complete = wrap_token(this.parse_scalar(chunk, index));      break;
+                    case '@':  complete = wrap_token(this.parse_vector(chunk, index));      break;
+                    case '%':  complete = wrap_token(this.parse_directive(chunk, index));   break;
+                    case '?':  complete = wrap_token(this.parse_conditional(chunk, index)); break;
+                    case '~':  complete = wrap_token(this.parse_done(chunk, index));        break;
+                    case '&':  complete = wrap_token(this.parse_function(chunk, index));    break;
                     default: ++index; break;
                 }
                 if (!complete) {
@@ -143,6 +143,25 @@ private:
         return new ScalarToken(this.consume(end_index+1, chunk, index)[2..$-1]);
     }//TESTME
 
+    Token parse_vector(ref string chunk, ref ptrdiff_t index) {
+        return null; //STUB
+    }
+
+    Token parse_directive(ref string chunk, ref ptrdiff_t index) {
+        return null; //STUB
+    }
+
+    Token parse_conditional(ref string chunk, ref ptrdiff_t index) {
+        return null; //STUB
+    }
+
+    Token parse_done(ref string chunk, ref ptrdiff_t index) {
+        return null; //STUB
+    }
+
+    Token parse_function(ref string chunk, ref ptrdiff_t index) {
+        return null; //STUB
+    }
 
      string consume(ptrdiff_t n, ref string chunk, ref ptrdiff_t index) {
         string consumed = chunk[0..n];
