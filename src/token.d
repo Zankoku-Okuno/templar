@@ -37,7 +37,7 @@ public:
 }
 
 class VectorToken : Token {
-    this(Token[] body, Token[] empty) {} //STUB
+    this(Token[] loop, Token[] empty) {} //STUB
 
     string render(SemanticEnvironment env) {
         return ""; //STUB
@@ -50,6 +50,15 @@ class ConditionalToken : Token {
     //what sort of data structure gets eval'd?
     //the simple version just evals a single string as a key to either a 
     //what if I wanted to add logical operations to the mix, or even functions?
+    //I suppose I'd need a tree with strings on leaves and logical connectives on interior nodes
+
+    string render(SemanticEnvironment env) {
+        return ""; //STUB
+    }
+}
+
+class BlockToken : Token {
+    this(string name, bool more, Token[] stream) {} //STUB
 
     string render(SemanticEnvironment env) {
         return ""; //STUB
