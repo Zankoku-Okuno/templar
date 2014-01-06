@@ -1,4 +1,3 @@
---TODO integrate with Hajj
 module Data.Templar (
       Templar(..)
     , textToTemplar

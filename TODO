@@ -1,0 +1,7 @@
+Well, I may have deleted D too early, since I forgot that the point was to have a _templating_ engine.
+
+Anyway, I still need to integrate the Templar data-exchange format with Hajj.
+Then, I'll go ahead and retrieve the templating engine
+    The plan is to have Attoparsec run through the template to generate a Hajj
+    The Hajj, in turn, will extract information from a templar, and meanwhile build an output text
+Then, I just need a driver wrapped around to join up the template and the input to produce output
