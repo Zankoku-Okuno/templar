@@ -1,9 +1,9 @@
-module Data.Templar (
-    -- * Templar Type
-      Templar
+module Templar.Data (
+    -- * TemplarData Type
+      TemplarData
     , Item(..)
     -- * Conversion
-    , textToTemplar
+    , textToTemplarData
     -- * Query
     , elem
     , lookup
@@ -29,7 +29,7 @@ import Control.Monad
 
 
 ------ Data Structures ------
-newtype Templar a = Templar { unTemplar :: Map Symbol (Item a) }
+newtype TemplarData a = TemplarData { unTemplar :: Map Symbol (Item a) }
 
 data Item a = Scalar  a
             | Vector [a]
@@ -44,61 +44,61 @@ data Line a = ScalarL a
 
 
 ------ Instances ------
-instance Show a => Show (Templar a) where
+instance Show a => Show (TemplarData a) where
     show xs = "{" ++ intercalate ", " (showElem <$> toList xs) ++ "}"
         where
         showElem (k, Scalar v) = show (unintern k) ++ "=" ++ show v
         showElem (k, Vector vs) = show (unintern k) ++ "=" ++ "[" ++ intercalate ", " (map show vs) ++ "]"
 
-instance Functor Templar where
+instance Functor TemplarData where
     fmap f = fromList . map (\(k, v) -> (k, f <$> v)) . toList
 instance Functor Item where
     fmap f (Scalar x)  = Scalar (f x)
     fmap f (Vector xs) = Vector (fmap f xs)
 
-instance Foldable Templar where
+instance Foldable TemplarData where
     foldMap f = foldMap (foldMap f . snd) . toList
 instance Foldable Item where
     foldMap f (Scalar x) = f x
     foldMap f (Vector xs) = foldMap f xs
 
-instance Traversable Templar where
+instance Traversable TemplarData where
     traverse f = (fromList <$>) . traverse (\(k, v) -> (,) k <$> f `traverse` v) . toList
 instance Traversable Item where
     traverse f (Scalar x)  = Scalar <$> f x
     traverse f (Vector xs) = Vector <$> f `traverse` xs
 
-instance Monoid (Templar a) where
-    mempty = Templar M.empty
-    mappend a b = Templar $ unTemplar b `M.union` unTemplar a
+instance Monoid (TemplarData a) where
+    mempty = TemplarData M.empty
+    mappend a b = TemplarData $ unTemplar b `M.union` unTemplar a
 
 
 ------ Data Access ------
-elem :: String -> Templar a -> Bool
+elem :: String -> TemplarData a -> Bool
 elem = elemSym . intern
-lookup :: Templar a -> String -> Maybe (Item a)
+lookup :: TemplarData a -> String -> Maybe (Item a)
 lookup xs = lookupSym xs . intern
-findWithDefault :: (Item a) -> Templar a  -> String -> Item a
+findWithDefault :: (Item a) -> TemplarData a  -> String -> Item a
 findWithDefault v xs = findWithDefaultSym v xs . intern
 
-elemSym :: Symbol -> Templar a -> Bool
+elemSym :: Symbol -> TemplarData a -> Bool
 elemSym k xs = M.member k (unTemplar xs)
-lookupSym :: Templar a -> Symbol -> Maybe (Item a)
+lookupSym :: TemplarData a -> Symbol -> Maybe (Item a)
 lookupSym xs k = M.lookup k (unTemplar xs)
-findWithDefaultSym :: (Item a) -> Templar a -> Symbol -> Item a
+findWithDefaultSym :: (Item a) -> TemplarData a -> Symbol -> Item a
 findWithDefaultSym v xs k = M.findWithDefault v k (unTemplar xs)
 
 
 ------ Conversion ------
-textToTemplar :: Text -> Either String (Templar Text)
-textToTemplar input = do
+textToTemplarData :: Text -> Either String (TemplarData Text)
+textToTemplarData input = do
     ls <- liftM removeBlanks . mapM classify . T.lines $ input
     es <- (liftM concat) . mapM mergeScalar . groupBy continued $ ls
     is <- mapM mergeVector . groupBy elements $ es
-    return . Templar . M.fromList $ is
+    return . TemplarData . M.fromList $ is
     where
     classify line = do
-        when (T.null line) (Left "Bad Templar Data: empty line.")
+        when (T.null line) (Left "Bad TemplarData Data: empty line.")
         let Just (sigil, content) = T.uncons line
         case sigil of
             '$' -> Right $ ScalarL (T.tail line)
@@ -106,7 +106,7 @@ textToTemplar input = do
             ',' -> Right $ ElemL   (T.tail line)
             ':' -> Right $ ContL   (T.tail line)
             '#' -> Right $ BlankL
-            _   -> Left  "Bad Templar Data: lines must begin with a sigil, one of '$', '@', ',', ':', '#'."
+            _   -> Left  "Bad TemplarData Data: lines must begin with a sigil, one of '$', '@', ',', ':', '#'."
     
     continued _ (ContL _) = True
     continued _ _         = False
@@ -114,7 +114,7 @@ textToTemplar input = do
     mergeScalar (ScalarL name: xs) = Right [ScalarE (toSymbol name)        $ unLines             xs]
     mergeScalar (VectorL name: xs) = Right [VectorE (toSymbol name), ElemE $ unLines             xs]
     mergeScalar (ElemL   x   : xs) = Right [                         ElemE $ unLines $ ElemL x : xs]
-    mergeScalar (ContL   _   : _ ) = Left  "Bad Templar Data: continuation lines must follow some other sort of line."
+    mergeScalar (ContL   _   : _ ) = Left  "Bad TemplarData Data: continuation lines must follow some other sort of line."
     
     elements (VectorE _) (ElemE _) = True
     elements (ElemE   _) (ElemE _) = True
@@ -122,7 +122,7 @@ textToTemplar input = do
     
     mergeVector [ScalarE name  x ] = Right (name, Scalar x)
     mergeVector (VectorE name: xs) = Right (name, Vector $ map unElement xs)
-    mergeVector (ElemE   x   : _ ) = Left  "Bad Templar Data: vector elements must occur after a vector begin or other vector element."
+    mergeVector (ElemE   x   : _ ) = Left  "Bad TemplarData Data: vector elements must occur after a vector begin or other vector element."
 
     toSymbol = intern . T.unpack
     unLines = T.intercalate (T.pack "\n") . map unLine
@@ -136,4 +136,4 @@ unLine (ContL x)   = x
 unElement (ElemE x) = x
 
 toList = M.toList . unTemplar
-fromList = Templar . M.fromList
+fromList = TemplarData . M.fromList
