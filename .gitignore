@@ -1,4 +1,3 @@
-bin/templatizer
-test/main
-*.o
-lib*.a
+.cabal-sandbox
+cabal.sandbox.config
+dist/
