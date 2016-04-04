@@ -26,13 +26,17 @@ data Template
         , loopBody :: Template
         }
     | Sequence [Template]
+    deriving (Show)
 
 
 data Source = Source Chain [Chain]
+    deriving (Show)
 data Chain
     = Rooted [Field]
     | Relative [Field]
     | Immediate Text
+    deriving (Show)
 data Field
     = NameField Name
     | CountField
+    deriving (Show)
