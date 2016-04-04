@@ -69,11 +69,11 @@ renderTemplate (Output source) = do
         NeedsEscaping -> (cfgFilter ctxConfig) str
         AlreadyEscaped -> str
 renderTemplate (CondBlock [] elseTemplate) = renderTemplate elseTemplate
-renderTemplate (CondBlock ((predicate, thenTemplate):rest) elseTemplate) = do
+renderTemplate (CondBlock ((expected, predicate, thenTemplate):rest) elseTemplate) = do
     Context {..} <- ask
     knight <- extract $ navigate (ctxRoot, ctxCurrent) predicate
     truthiness <- extract $ truthy knight
-    renderTemplate $ if truthiness
+    renderTemplate $ if truthiness == expected
         then thenTemplate
         else CondBlock rest elseTemplate
 renderTemplate (LoopBlock {..}) = do

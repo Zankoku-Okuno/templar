@@ -20,36 +20,70 @@ runParser :: Config -> Text -> Either String Template
 runParser cfg = parseOnly (parseTemplate cfg)
 
 parseTemplate :: Parse Template
-parseTemplate cfg = Sequence <$> many (parseText cfg <|> parseTag cfg)
+parseTemplate cfg = parseBlock cfg <* endOfInput
 
+
+parseBlock :: Parse Template
+parseBlock cfg = Sequence <$> many (parseText cfg <|> parseTag cfg)
 
 parseText :: Parse Template
 parseText = (Literal <$>) . takeTillString . cfgStartTag
 
 parseTag :: Parse Template
-parseTag = tagBoilerplate parseOutput
+parseTag cfg = parseOutput cfg <|> parseCond cfg -- <|> parseLoop cfg
+
 
 tagBoilerplate :: Parser a -> Parse a
 tagBoilerplate inner (Config {..}) = do
     string cfgStartTag
     it <- inner
+    --TODO whitespace just inside tag braces
     --TODO comment
     --TODO trim whitespace?
     string cfgEndTag
     pure it
 
 
-parseOutput :: Parser Template
-parseOutput = do
-    ctor <- option Relative (Rooted <$ char '.')
+parseOutput :: Parse Template
+parseOutput = tagBoilerplate $ do
     --TODO different filter
     Output <$> parseSource
 
---TODO parseCond
-    --TODO parseTruthy
-    --TODO parseFalsey
---TODO parseLoop
---TODO parseEndBlock
+parseCond :: Parse Template
+parseCond cfg = do
+    first <- parseIf
+    elifs <- many parseElif
+    last <- option (Literal "") parseElse
+    parseEndBlock cfg
+    pure $ CondBlock (first : elifs) last
+    where
+    parseIf = parseClause False
+    parseElif = parseClause True
+    parseElse = do
+        tagBoilerplate (char '|') cfg --FIXME not just standard tag boilerblate, but allow anything after the slash
+        parseBlock cfg
+    parseClause elif = do
+        (expected, predicate) <- flip tagBoilerplate cfg $ do
+            when elif $ () <$ char '|'
+            expected <- (True <$ char '?') <|> (False <$ char '!')
+            predicate <- parseSource
+            pure (expected, predicate)
+        block <- parseBlock cfg
+        pure $ (expected, predicate, block)
+
+parseLoop :: Parse Template
+parseLoop cfg = do
+    (loopName, loopVar, loopOver) <- flip tagBoilerplate cfg $ do
+        char '#'
+        loopName <- optional (parseName <* string ": ") --FIXME more flexible whitespace
+        loopVar <- optional (parseName <* string " <- ") --FIXME more flexible whitespace
+        loopOver <- parseSource
+        pure (loopName, loopVar, loopOver)
+    loopBody <- parseBlock cfg
+    pure $ LoopBlock {..}
+
+parseEndBlock :: Parse ()
+parseEndBlock = tagBoilerplate (() <$ char '/') --FIXME not just standard tag boilerblate, but allow anything after the slash
 
 
 parseSource :: Parser Source
@@ -61,7 +95,7 @@ parseSource = do
 parseChain :: Parser Chain
 parseChain = parseRooted <|> parseRelative <|> parseImmediate
     where
-    parseRooted = Rooted <$> (char '.' >> parseLongName)
+    parseRooted = Rooted <$> (char '.' >> option [] parseLongName)
     parseRelative = Relative <$> parseLongName
     parseImmediate = Immediate <$> fail "TODO: immediate data unimplemented"
     parseLongName = do
@@ -76,7 +110,7 @@ parseField = parseNameField <|> parseCountField
     parseCountField = CountField <$ char '#'
 
 parseName :: Parser Name
-parseName = T.unpack <$> takeWhile (inClass "a-zA-Z0-9_")
+parseName = T.unpack <$> takeWhile1 (inClass "a-zA-Z0-9_")
 
 
 takeTillString :: Text -> Parser Text

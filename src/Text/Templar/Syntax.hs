@@ -18,7 +18,7 @@ type Name = String --FIXME constructor validates string
 data Template
     = Literal Text
     | Output Source
-    | CondBlock [(Source, Template)] Template
+    | CondBlock [(Bool, Source, Template)] Template
     | LoopBlock
         { loopName :: Maybe Name
         , loopVar :: Maybe Name
