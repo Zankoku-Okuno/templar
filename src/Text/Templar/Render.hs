@@ -81,7 +81,9 @@ renderTemplate (LoopBlock {..}) = do
     knight <- extract $ navigate (ctxRoot, ctxCurrent) loopOver
     elements <- extract $ loop knight
     let loopCtxs = mkLoopContexts (loopName, loopVar) ctxCurrent elements
-    T.concat <$> mapM renderLoopBody loopCtxs
+    if null loopCtxs
+        then renderTemplate loopEmpty
+        else T.concat <$> mapM renderLoopBody loopCtxs
     where
     renderLoopBody loopCtx =
         let enterLoopContext ctx = ctx { ctxCurrent = Knight loopCtx }

@@ -30,7 +30,7 @@ parseText :: Parse Template
 parseText = (Literal <$>) . takeTillString . cfgStartTag
 
 parseTag :: Parse Template
-parseTag cfg = parseOutput cfg <|> parseCond cfg -- <|> parseLoop cfg
+parseTag cfg = parseOutput cfg <|> parseCond cfg <|> parseLoop cfg
 
 
 tagBoilerplate :: Parser a -> Parse a
@@ -80,6 +80,10 @@ parseLoop cfg = do
         loopOver <- parseSource
         pure (loopName, loopVar, loopOver)
     loopBody <- parseBlock cfg
+    loopEmpty <- option (Literal "") $ do
+        tagBoilerplate (char '|') cfg
+        parseBlock cfg
+    parseEndBlock cfg
     pure $ LoopBlock {..}
 
 parseEndBlock :: Parse ()

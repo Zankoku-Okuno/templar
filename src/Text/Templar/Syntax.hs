@@ -24,6 +24,7 @@ data Template
         , loopVar :: Maybe Name
         , loopOver :: Source 
         , loopBody :: Template
+        , loopEmpty :: Template
         }
     | Sequence [Template]
     deriving (Show)
