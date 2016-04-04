@@ -20,10 +20,7 @@ runParser :: Config -> Text -> Either String Template
 runParser cfg = parseOnly (parseTemplate cfg)
 
 parseTemplate :: Parse Template
-parseTemplate cfg = do
-    initial <- many (parseText cfg <|> parseTag cfg)
-    last <- Literal <$> takeText
-    pure $ Sequence (initial ++ [last])
+parseTemplate cfg = Sequence <$> many (parseText cfg <|> parseTag cfg)
 
 parseText :: Parse Template
 parseText = (Literal <$>) . parse . cfgStartTag
@@ -31,7 +28,7 @@ parseText = (Literal <$>) . parse . cfgStartTag
     parse startTag = do
         first <- takeTill (== startChar)
         when (T.null first) $ fail "empty text"
-        rest <- peekStartTag <|> recurse
+        rest <- peekStartTag <|> recurse <|> pure ""
         pure $ first <> rest
         where
         peekStartTag = lookAhead (string startTag) >> pure ""
