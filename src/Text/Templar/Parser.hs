@@ -22,33 +22,74 @@ runParser cfg = parseOnly (parseTemplate cfg)
 parseTemplate :: Parse Template
 parseTemplate cfg = Sequence <$> many (parseText cfg <|> parseTag cfg)
 
+
 parseText :: Parse Template
-parseText = (Literal <$>) . parse . cfgStartTag
-    where
-    parse startTag = do
-        first <- takeTill (== startChar)
-        when (T.null first) $ fail "empty text"
-        rest <- peekStartTag <|> recurse <|> pure ""
-        pure $ first <> rest
-        where
-        peekStartTag = lookAhead (string startTag) >> pure ""
-        recurse = do
-            char <- T.singleton <$> char startChar
-            rest <- parse startTag
-            pure $ char <> rest
-        startChar = T.head startTag
+parseText = (Literal <$>) . takeTillString . cfgStartTag
 
 parseTag :: Parse Template
-parseTag (Config {..}) = do
+parseTag = tagBoilerplate parseOutput
+
+tagBoilerplate :: Parser a -> Parse a
+tagBoilerplate inner (Config {..}) = do
     string cfgStartTag
-    template <- parseOutput
+    it <- inner
+    --TODO comment
+    --TODO trim whitespace?
     string cfgEndTag
-    pure template
+    pure it
+
 
 parseOutput :: Parser Template
 parseOutput = do
-    name <- parseName
-    pure $ Output (Source (Relative [NameField name]) [])
+    ctor <- option Relative (Rooted <$ char '.')
+    --TODO different filter
+    Output <$> parseSource
+
+--TODO parseCond
+    --TODO parseTruthy
+    --TODO parseFalsey
+--TODO parseLoop
+--TODO parseEndBlock
+
+
+parseSource :: Parser Source
+parseSource = do
+    f <- parseChain
+    args <- many $ takeWhile1 (inClass " \t") >> parseChain
+    pure $ Source f args
+
+parseChain :: Parser Chain
+parseChain = parseRooted <|> parseRelative <|> parseImmediate
+    where
+    parseRooted = Rooted <$> (char '.' >> parseLongName)
+    parseRelative = Relative <$> parseLongName
+    parseImmediate = Immediate <$> fail "TODO: immediate data unimplemented"
+    parseLongName = do
+        hd <- NameField <$> parseName -- TODO? allow # to start a chain
+        tl <- many parseField
+        pure $ hd:tl
+
+parseField :: Parser Field
+parseField = parseNameField <|> parseCountField
+    where
+    parseNameField = NameField <$> (char '.' >> parseName)
+    parseCountField = CountField <$ char '#'
 
 parseName :: Parser Name
 parseName = T.unpack <$> takeWhile (inClass "a-zA-Z0-9_")
+
+
+takeTillString :: Text -> Parser Text
+takeTillString stopStr = parse
+    where
+    parse = do
+        first <- takeTill (== stopChar)
+        when (T.null first) $ fail "empty text"
+        rest <- peekStopStr <|> recurse <|> pure ""
+        pure $ first <> rest
+    peekStopStr = lookAhead (string stopStr) >> pure ""
+    recurse = do
+        char <- T.singleton <$> char stopChar
+        rest <- parse
+        pure $ char <> rest
+    stopChar = T.head stopStr
