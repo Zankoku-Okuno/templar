@@ -1,4 +1,5 @@
-{-#LANGUAGE OverloadedStrings, ViewPatterns,
+{-#LANGUAGE OverloadedStrings,
+            ViewPatterns, RecordWildCards,
             ExistentialQuantification,
             TypeSynonymInstances, FlexibleInstances, OverlappingInstances #-}
 module Text.Templar.Knightly where
@@ -28,6 +29,7 @@ class Knightly a where
     loop :: a -> Extract [Knight]
     count :: a -> Extract Knight
     call :: a -> [Knight] -> Extract Knight
+
     output _ = Error "not renderable"
     truthy _ = Good True
     access _ = Good . Knight . NoSuchField
@@ -152,10 +154,37 @@ instance Knightly a => Knightly (Map Name a) where
     loop xs = loop $ Map.assocs xs
     count xs = Good . Knight $ (fromIntegral $ Map.size xs :: Integer)
 
---TODO Knightly a => [Knight] -> a
---TODO Knightly a => [Knight] -> Extract a
+instance Knightly a => Knightly ([Knight] -> Extract a) where
+    truthy _ = Error "not testable"
+    call f xs = Knight <$> f xs
 
---TODO data type for query user on cmdline
+
+data CmdlineQuery a = CmdlineQuery
+    { cmdlineAsk :: String -> IO String
+    , cmdlineQuestion :: String
+    , cmdlineDefault :: Maybe a
+    , cmdlineShowDefault :: Maybe String
+    , cmdlineParser :: String -> Maybe a
+    }
+runCmdlineQuery :: CmdlineQuery a -> Extract a
+runCmdlineQuery (CmdlineQuery {..}) = Query $ loop
+    where
+    q = cmdlineQuestion
+        ++ (maybe "" (\str -> " [" ++ str ++ "]: ") cmdlineShowDefault)
+    loop = do
+        a <- cmdlineAsk q
+        case (a, cmdlineDefault, cmdlineParser a) of
+            ("", Just def, _) -> pure . Good $ def
+            (_, _, Just it) -> pure . Good $ it
+            (_, _, Nothing) -> loop
+
+instance Knightly a => Knightly (CmdlineQuery a) where
+    output q = runCmdlineQuery q >>= output
+    truthy q = runCmdlineQuery q >>= truthy
+    access q name = runCmdlineQuery q >>= flip access name 
+    loop q = runCmdlineQuery q >>= loop
+    count q = runCmdlineQuery q >>= count
+    call q args = runCmdlineQuery q >>= flip call args
 
 --TODO json, yaml, xml, ini, csv
 
