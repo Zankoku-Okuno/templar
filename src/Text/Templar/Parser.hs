@@ -5,6 +5,7 @@ import Prelude hiding (takeWhile)
 
 import Text.Templar.Syntax
 
+import Data.Char (isSpace)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Monoid
@@ -27,20 +28,29 @@ parseBlock :: Parse Template
 parseBlock cfg = Sequence <$> many (parseText cfg <|> parseTag cfg)
 
 parseText :: Parse Template
-parseText = (Literal <$>) . takeTillString . cfgStartTag
+parseText cfg = do
+    let startTag = cfgStartTag cfg
+        startTrim = startTag <> "~"
+    text <- takeTillString startTag
+    trim <- (True <$ lookAhead (string startTrim)) <|> pure False
+    pure . Literal $ if trim
+        then T.dropWhileEnd isSpace text
+        else text
+
 
 parseTag :: Parse Template
-parseTag cfg = parseOutput cfg <|> parseCond cfg <|> parseLoop cfg
-
+parseTag cfg = parseOutput cfg <|> parseCond cfg <|> parseLoop cfg <|> parseEmpty cfg
 
 tagBoilerplate :: Parser a -> Parse a
 tagBoilerplate inner (Config {..}) = do
     string cfgStartTag
+    optional $ char '~'
     it <- inner
     --TODO whitespace just inside tag braces
+    trim <- (True <$ char '~') <|> pure False
     --TODO comment
-    --TODO trim whitespace?
     string cfgEndTag
+    when trim $ skipWhile isSpace
     pure it
 
 
@@ -88,6 +98,9 @@ parseLoop cfg = do
 
 parseEndBlock :: Parse ()
 parseEndBlock = tagBoilerplate (() <$ char '/') --FIXME not just standard tag boilerblate, but allow anything after the slash
+
+parseEmpty :: Parse Template
+parseEmpty = tagBoilerplate (pure $ Literal "")
 
 
 parseSource :: Parser Source
