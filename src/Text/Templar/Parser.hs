@@ -14,7 +14,7 @@ import Data.Attoparsec.Text
 import Data.Attoparsec.Combinator
 
 
-type Parse a = Config -> (Parser a)
+type Parse a = Config -> Parser a
 
 runParser :: Config -> Text -> Either String Template
 runParser cfg = parseOnly (parseTemplate cfg)
