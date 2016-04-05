@@ -3,7 +3,7 @@
 
 name:                templar
 version:             0.0.0
-synopsis:            Agnostic templating engine
+synopsis:            The ur-templating language: focused, agnostic, powerful.
 -- description:         
 homepage:            https://github.com/Zankoku-Okuno/templar
 license:             GPL-3
@@ -26,6 +26,7 @@ library
   -- other-extensions:    
   build-depends:       base >=4.8 && <4.9,
                        attoparsec ==0.13.*,
+                       containers ==0.5.*,
                        mtl ==2.*,
                        text ==1.2.*,
                        transformers ==0.4.*

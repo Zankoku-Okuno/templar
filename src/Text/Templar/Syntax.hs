@@ -8,8 +8,8 @@ data Config = Config
     { cfgStartTag :: Text
     , cfgEndTag :: Text
     -- , cfgTagSyntaxErrorLevel :: Silent | Warning | Error
-    , cfgFilter :: Text -> Text
-    -- , cfgOtherFilters :: Name -> (String -> String)
+    , cfgFilter :: (String, Text -> Text)
+    -- , cfgOtherFilters :: Name -> (Text -> Text)
     }
 
 

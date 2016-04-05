@@ -65,9 +65,10 @@ renderTemplate (Output source) = do
     Context {..} <- ask
     knight <- extract $ navigate (ctxRoot, ctxCurrent) source
     (str, escape) <- extract $ output knight
+    let (filterName, filterFunc) = cfgFilter ctxConfig
     pure $ case escape of
-        NeedsEscaping -> (cfgFilter ctxConfig) str
-        AlreadyEscaped -> str
+        NeedsEscaping -> filterFunc str
+        AlreadyEscaped filterName -> str --FIXME compare filter name against default filter
 renderTemplate (CondBlock [] elseTemplate) = renderTemplate elseTemplate
 renderTemplate (CondBlock ((expected, predicate, thenTemplate):rest) elseTemplate) = do
     Context {..} <- ask

@@ -8,14 +8,17 @@ import Text.Templar.Syntax (Name)
 
 import Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Text.Lazy as LT
+import Data.Foldable
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Tree
 import Data.Functor
 import Control.Applicative
 import Control.Monad.IO.Class
 
 
-data EscapeStatus = AlreadyEscaped | NeedsEscaping
+data EscapeStatus = AlreadyEscaped String | NeedsEscaping
 data Extract r
     = Good r
     | Query (IO (Extract r))
@@ -76,6 +79,15 @@ instance Monad Extract where
     (Error msg) >>= k = Error msg
 
 
+discrim :: Name -> Either Name Int
+discrim str | check str = Right $ foldl go 0 str
+            | otherwise = Left str
+    where
+    check = all (`elem` ['0'..'9'])
+    go acc c = fromEnum c - fromEnum '0' + acc * 10
+
+
+------------------------------ Obvious Knight ------------------------------
 instance Knightly Knight where
     output (Knight it) = output it
     truthy (Knight it) = truthy it
@@ -84,6 +96,8 @@ instance Knightly Knight where
     count (Knight it) = count it
     call (Knight it) = call it
 
+
+------------------------------ Primitive Knights ------------------------------
 instance Knightly Bool where
     truthy b = Good b
 
@@ -97,12 +111,17 @@ instance Knightly String where
     truthy "" = Good False
     truthy _ = Good True
 
--- TODO the other (lazy/strict) text type
 instance Knightly Text where
     output str = Good (str, NeedsEscaping)
     truthy "" = Good False
     truthy _ = Good True
+instance Knightly LT.Text where
+    output str = Good (LT.toStrict str, NeedsEscaping)
+    truthy "" = Good False
+    truthy _ = Good True
 
+
+------------------------------ Aggregate Knights ------------------------------
 instance Knightly a => Knightly (Maybe a) where
     output Nothing = Good ("", NeedsEscaping)
     output (Just x) = output x
@@ -111,20 +130,76 @@ instance Knightly a => Knightly (Maybe a) where
     loop Nothing = Good []
     loop (Just x) = Good [Knight x]
 
-instance Knightly a => Knightly [a] where
-    truthy [] = Good False
-    truthy _ = Good True
-    access xs (discrim -> Right i) = Good . Knight $ xs !! i
+instance (Knightly a, Foldable t) => Knightly (t a) where
+    truthy xs = Good $ not (null xs)
+    access xs (discrim -> Right i) | length xs < i = Good . Knight $ toList xs !! i
+                                   | otherwise = Error "index out of bounds"
     access xs (discrim -> Left name) = Good . Knight $ NoSuchField name
-    loop = Good . map Knight
+    loop = Good . map Knight . toList
 
 instance (Knightly a, Knightly b) => Knightly (a, b) where
     truthy _ = Good True
-    access (a, _) "0" = Good . Knight $ a
-    access (_, b) "1" = Good . Knight $ b
+    access (a, _) "1" = Good . Knight $ a
+    access (_, b) "2" = Good . Knight $ b
     access _ name = Good . Knight $ NoSuchField name
     loop (a, b) = Good [Knight a, Knight b]
---TODO more tuples
+instance (Knightly a, Knightly b, Knightly c) => Knightly (a, b, c) where
+    truthy _ = Good True
+    access (a, _, _) "1" = Good . Knight $ a
+    access (_, b, _) "2" = Good . Knight $ b
+    access (_, _, c) "3" = Good . Knight $ c
+    access _ name = Good . Knight $ NoSuchField name
+    loop (a, b, c) = Good [Knight a, Knight b, Knight c]
+instance (Knightly a, Knightly b, Knightly c, Knightly d) => Knightly (a, b, c, d) where
+    truthy _ = Good True
+    access (a, _, _, _) "1" = Good . Knight $ a
+    access (_, b, _, _) "2" = Good . Knight $ b
+    access (_, _, c, _) "3" = Good . Knight $ c
+    access (_, _, _, d) "4" = Good . Knight $ d
+    access _ name = Good . Knight $ NoSuchField name
+    loop (a, b, c, d) = Good [Knight a, Knight b, Knight c, Knight d]
+instance (Knightly a, Knightly b, Knightly c, Knightly d, Knightly e) => Knightly (a, b, c, d, e) where
+    truthy _ = Good True
+    access (a, _, _, _, _) "1" = Good . Knight $ a
+    access (_, b, _, _, _) "2" = Good . Knight $ b
+    access (_, _, c, _, _) "3" = Good . Knight $ c
+    access (_, _, _, d, _) "4" = Good . Knight $ d
+    access (_, _, _, _, e) "5" = Good . Knight $ e
+    access _ name = Good . Knight $ NoSuchField name
+    loop (a, b, c, d, e) = Good [Knight a, Knight b, Knight c, Knight d, Knight e]
+instance (Knightly a, Knightly b, Knightly c, Knightly d, Knightly e, Knightly f) => Knightly (a, b, c, d, e, f) where
+    truthy _ = Good True
+    access (a, _, _, _, _, _) "1" = Good . Knight $ a
+    access (_, b, _, _, _, _) "2" = Good . Knight $ b
+    access (_, _, c, _, _, _) "3" = Good . Knight $ c
+    access (_, _, _, d, _, _) "4" = Good . Knight $ d
+    access (_, _, _, _, e, _) "5" = Good . Knight $ e
+    access (_, _, _, _, _, f) "6" = Good . Knight $ f
+    access _ name = Good . Knight $ NoSuchField name
+    loop (a, b, c, d, e, f) = Good [Knight a, Knight b, Knight c, Knight d, Knight e, Knight f]
+instance (Knightly a, Knightly b, Knightly c, Knightly d, Knightly e, Knightly f, Knightly g) => Knightly (a, b, c, d, e, f, g) where
+    truthy _ = Good True
+    access (a, _, _, _, _, _, _) "1" = Good . Knight $ a
+    access (_, b, _, _, _, _, _) "2" = Good . Knight $ b
+    access (_, _, c, _, _, _, _) "3" = Good . Knight $ c
+    access (_, _, _, d, _, _, _) "4" = Good . Knight $ d
+    access (_, _, _, _, e, _, _) "5" = Good . Knight $ e
+    access (_, _, _, _, _, f, _) "6" = Good . Knight $ f
+    access (_, _, _, _, _, _, g) "7" = Good . Knight $ g
+    access _ name = Good . Knight $ NoSuchField name
+    loop (a, b, c, d, e, f, g) = Good [Knight a, Knight b, Knight c, Knight d, Knight e, Knight f, Knight g]
+instance (Knightly a, Knightly b, Knightly c, Knightly d, Knightly e, Knightly f, Knightly g, Knightly h) => Knightly (a, b, c, d, e, f, g, h) where
+    truthy _ = Good True
+    access (a, _, _, _, _, _, _, _) "1" = Good . Knight $ a
+    access (_, b, _, _, _, _, _, _) "2" = Good . Knight $ b
+    access (_, _, c, _, _, _, _, _) "3" = Good . Knight $ c
+    access (_, _, _, d, _, _, _, _) "4" = Good . Knight $ d
+    access (_, _, _, _, e, _, _, _) "5" = Good . Knight $ e
+    access (_, _, _, _, _, f, _, _) "6" = Good . Knight $ f
+    access (_, _, _, _, _, _, g, _) "7" = Good . Knight $ g
+    access (_, _, _, _, _, _, _, h) "8" = Good . Knight $ h
+    access _ name = Good . Knight $ NoSuchField name
+    loop (a, b, c, d, e, f, g, h) = Good [Knight a, Knight b, Knight c, Knight d, Knight e, Knight f, Knight g, Knight h]
 
 newtype KeyVal k v = KeyVal (k, v)
 instance (Knightly a, Knightly b) => Knightly (KeyVal a b) where
@@ -137,6 +212,18 @@ instance (Knightly a, Knightly b) => Knightly (KeyVal a b) where
     count (KeyVal x) = count x
     call (KeyVal x) = call x
 
+instance Knightly a => Knightly (Tree a) where
+    output (Node {..}) = output rootLabel
+    truthy _ = Error "not testable"
+    access (Node {..}) "parent" = Good . Knight $ rootLabel
+    access (Node {..}) "children" = Good . Knight $ subForest
+    access (Node {..}) (discrim -> Right i) | i < length subForest
+        = Good . Knight $ subForest !! i
+    access (Node {..}) name = Good . Knight $ NoSuchField name
+    loop (Node {..}) = loop subForest
+    count (Node {..}) = count subForest
+    call (Node {..}) = call rootLabel
+
 instance Knightly v => Knightly [(Name, v)] where
     truthy [] = Good False
     truthy _ = Good True
@@ -145,7 +232,6 @@ instance Knightly v => Knightly [(Name, v)] where
         Just val -> Good . Knight $ val
     loop xs = Good . map Knight $ map KeyVal xs
 
--- TODO the other (lazy/strict) map type
 instance Knightly a => Knightly (Map Name a) where
     truthy xs = Good $ not (Map.null xs)
     access self name = case Map.lookup name self of
@@ -154,10 +240,21 @@ instance Knightly a => Knightly (Map Name a) where
     loop xs = loop $ Map.assocs xs
     count xs = Good . Knight $ (fromIntegral $ Map.size xs :: Integer)
 
+
+------------------------------ Function Knights ------------------------------
 instance Knightly a => Knightly ([Knight] -> Extract a) where
     truthy _ = Error "not testable"
     call f xs = Knight <$> f xs
 
+
+------------------------------ IO Knights ------------------------------
+instance Knightly a => Knightly (IO (Extract a)) where
+    output action = Query action >>= output
+    truthy action = Query action >>= truthy
+    access action name = Query action >>= flip access name
+    loop action = Query action >>= loop
+    count action = Query action >>= count
+    call action args = Query action >>= flip call args
 
 data CmdlineQuery a = CmdlineQuery
     { cmdlineAsk :: String -> IO String
@@ -177,7 +274,6 @@ runCmdlineQuery (CmdlineQuery {..}) = Query $ loop
             ("", Just def, _) -> pure . Good $ def
             (_, _, Just it) -> pure . Good $ it
             (_, _, Nothing) -> loop
-
 instance Knightly a => Knightly (CmdlineQuery a) where
     output q = runCmdlineQuery q >>= output
     truthy q = runCmdlineQuery q >>= truthy
@@ -186,12 +282,6 @@ instance Knightly a => Knightly (CmdlineQuery a) where
     count q = runCmdlineQuery q >>= count
     call q args = runCmdlineQuery q >>= flip call args
 
---TODO json, yaml, xml, ini, csv
 
-
-discrim :: Name -> Either Name Int
-discrim str | check str = Right $ foldl go 0 str
-            | otherwise = Left str
-    where
-    check = all (`elem` ['0'..'9'])
-    go acc c = fromEnum c - fromEnum '0' + acc * 10
+------------------------------ Data Format Knights ------------------------------
+--TODO json, yaml, xml, ini, csv, sexprs
