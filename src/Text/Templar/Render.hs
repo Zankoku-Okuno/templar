@@ -1,6 +1,8 @@
 {-#LANGUAGE OverloadedStrings,
             PatternSynonyms, RecordWildCards, LambdaCase #-}
-module Text.Templar.Render where
+module Text.Templar.Render
+    ( runRender
+    ) where
 
 import Text.Templar.Syntax
 import Text.Templar.Knightly

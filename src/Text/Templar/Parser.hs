@@ -1,5 +1,7 @@
 {-#LANGUAGE OverloadedStrings, RecordWildCards #-}
-module Text.Templar.Parser where
+module Text.Templar.Parser
+    ( runParser
+    ) where
 
 import Prelude hiding (takeWhile)
 

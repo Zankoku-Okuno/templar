@@ -1,4 +1,6 @@
-module Text.Templar.Source where
+module Text.Templar.Source
+    ( navigate
+    ) where
 
 import Text.Templar.Syntax
 import Text.Templar.Knightly

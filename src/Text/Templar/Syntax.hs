@@ -1,4 +1,11 @@
-module Text.Templar.Syntax where
+module Text.Templar.Syntax
+    ( Config(..)
+    , Name
+    , Template(..)
+    , Source(..)
+    , Chain(..)
+    , Field(..)
+    ) where
 
 import Data.Text (Text)
 import qualified Data.Text as T

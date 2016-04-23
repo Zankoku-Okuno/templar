@@ -2,7 +2,15 @@
             ViewPatterns, RecordWildCards,
             ExistentialQuantification,
             TypeSynonymInstances, FlexibleInstances, OverlappingInstances #-}
-module Text.Templar.Knightly where
+module Text.Templar.Knightly 
+    ( Knightly(..)
+    , Knight(..)
+    , Extract(..)
+    , NoSuchField(..)
+    , KeyVal(..)
+    , CmdlineQuery(..)
+    , EscapeStatus(..)
+    ) where
 
 import Text.Templar.Syntax (Name)
 
